@@ -1,0 +1,7 @@
+org/eclipse/rdf4j/federated/optimizer/SourceSelection$CheckTaskPair.class
+org/eclipse/rdf4j/federated/optimizer/SourceSelection$SourceSelectionExecutorWithLatch.class
+org/example/FedXContainer.class
+org/eclipse/rdf4j/federated/optimizer/SourceSelection$ParallelCheckTask.class
+org/apache/http/impl/execchain/MainClientExec.class
+org/example/FedX.class
+org/eclipse/rdf4j/federated/optimizer/SourceSelection.class
