@@ -83,151 +83,154 @@ public class FedX {
         String outQueryPlanFile = args[4];
         String statPath = args[5];
         Integer timeout = Integer.parseInt(args[6]);
-        String inSourceSelectionPath = "";
 
-        if (args.length == 8) {
-            inSourceSelectionPath = args[7];
-            parseSourceSelection(inSourceSelectionPath);
-        }
+        if (args.length > 7) {
+            for (int i=7; i < args.length; i++) {
+                parseSourceSelection(args[i]);
 
-        String rawQuery = new String(Files.readAllBytes(Paths.get(queryPath)));
-        log.info("Query {}", rawQuery);
-        File dataConfig = new File(configPath);
+                String rawQuery = new String(Files.readAllBytes(Paths.get(queryPath)));
+                log.info("Query {}", rawQuery);
+                File dataConfig = new File(configPath);
 
-        Long startTime = null;
-        Long endTime = null;
+                Long startTime = null;
+                Long endTime = null;
 
-        FedXRepository repo = FedXFactory.newFederation()
-                .withConfig(new FedXConfig()
-                        .withEnableMonitoring(true)
-                        .withLogQueryPlan(true)
-                        .withLogQueries(true)
-                        .withDebugQueryPlan(true)
-                        .withJoinWorkerThreads(30)
-                        .withUnionWorkerThreads(30)
-                        .withBoundJoinBlockSize(30)
-                        .withEnforceMaxQueryTime(timeout))
-                .withMembers(dataConfig)
-                .create();
+                FedXRepository repo = FedXFactory.newFederation()
+                        .withConfig(new FedXConfig()
+                                .withEnableMonitoring(true)
+                                .withLogQueryPlan(true)
+                                .withLogQueries(true)
+                                .withDebugQueryPlan(true)
+                                .withJoinWorkerThreads(30)
+                                .withUnionWorkerThreads(30)
+                                .withBoundJoinBlockSize(30)
+                                .withEnforceMaxQueryTime(timeout))
+                        .withMembers(dataConfig)
+                        .create();
 
-        startTime = System.currentTimeMillis();
+                startTime = System.currentTimeMillis();
 
-        // RepositoryConnection conn = repo.getConnection();
-        // TupleQuery tq = conn.prepareTupleQuery(rawQuery);
-        // TupleQueryResult res = tq.evaluate();
+                // RepositoryConnection conn = repo.getConnection();
+                // TupleQuery tq = conn.prepareTupleQuery(rawQuery);
+                // TupleQueryResult res = tq.evaluate();
 
-        // while (res.hasNext()) {
-        // BindingSet b = res.next();
-        // System.out.println(b.toString());
-        // }
+                // while (res.hasNext()) {
+                // BindingSet b = res.next();
+                // System.out.println(b.toString());
+                // }
 
-        try (RepositoryConnection conn = repo.getConnection()) {
-            TupleQuery tq = conn.prepareTupleQuery(rawQuery);
+                try (RepositoryConnection conn = repo.getConnection()) {
+                    TupleQuery tq = conn.prepareTupleQuery(rawQuery);
 
-            try (TupleQueryResult res = tq.evaluate()) {
+                    try (TupleQueryResult res = tq.evaluate()) {
 
-                log.info("# Optimized Query Plan: ");
-                String queryPlan = QueryPlanLog.getQueryPlan();
-                log.info(queryPlan);
+                        log.info("# Optimized Query Plan: ");
+                        String queryPlan = QueryPlanLog.getQueryPlan();
+                        log.info(queryPlan);
 
-                if (!outQueryPlanFile.equals("/dev/null")) {
-                    try (BufferedWriter queryPlanWriter = new BufferedWriter(new FileWriter(outQueryPlanFile))) {
-                        queryPlanWriter.write(queryPlan);
-                    }
-                }
-
-                if (!outSourceSelectionPath.equals("/dev/null")) {
-                    try (BufferedWriter sourceSelectionWriter = new BufferedWriter(
-                            new FileWriter(outSourceSelectionPath))) {
-                        sourceSelectionWriter.write("triple,source_selection\n");
-                        Map<StatementPattern, List<StatementSource>> stmt = FedX.CONTAINER.getStmtToSources();
-                        if (stmt != null) {
-                            // String jsonString = new Gson().toJson(stmt);
-                            // sourceSelectionWriter.write(jsonString);
-                            for (StatementPattern pattern : stmt.keySet()) {
-                                sourceSelectionWriter.write(
-                                        ("\"" + pattern + "\"," + "\"" + stmt.get(pattern).toString()).replace("\n",
-                                                " ")
-                                                + "\"\n");
+                        if (!outQueryPlanFile.equals("/dev/null")) {
+                            try (BufferedWriter queryPlanWriter = new BufferedWriter(new FileWriter(new File(outQueryPlanFile+".r"+(i-6))))) {
+                                queryPlanWriter.write(queryPlan);
                             }
                         }
-                    }
-                }
 
-                try (BufferedWriter queryResultWriter = new BufferedWriter(new FileWriter(outResultPath))) {
+                        if (!outSourceSelectionPath.equals("/dev/null")) {
+                            try (BufferedWriter sourceSelectionWriter = new BufferedWriter(
+                                    new FileWriter(outSourceSelectionPath))) {
+                                sourceSelectionWriter.write("triple,source_selection\n");
+                                Map<StatementPattern, List<StatementSource>> stmt = FedX.CONTAINER.getStmtToSources();
+                                if (stmt != null) {
+                                    // String jsonString = new Gson().toJson(stmt);
+                                    // sourceSelectionWriter.write(jsonString);
+                                    for (StatementPattern pattern : stmt.keySet()) {
+                                        sourceSelectionWriter.write(
+                                                ("\"" + pattern + "\"," + "\"" + stmt.get(pattern).toString()).replace("\n",
+                                                        " ")
+                                                        + "\"\n");
+                                    }
+                                }
+                            }
+                        }
 
-                    // The execution of hasNext() yield null exception error
-                    // What is actually null ? Candidates from debugger: conn (unprobable)
+                        try (BufferedWriter queryResultWriter = new BufferedWriter(new FileWriter(new File(outResultPath+".r"+(i-6))))) {
 
-                    while (res.hasNext()) {
-                        BindingSet b = res.next();
+                            // The execution of hasNext() yield null exception error
+                            // What is actually null ? Candidates from debugger: conn (unprobable)
 
-                        if (!outResultPath.equals("/dev/null")) {
-                            queryResultWriter.write(b.toString() + "\n");
+                            while (res.hasNext()) {
+                                BindingSet b = res.next();
+
+                                if (!outResultPath.equals("/dev/null")) {
+                                    queryResultWriter.write(b.toString() + "\n");
+                                }
+                            }
+                        }
+                    } catch (OutOfMemoryError oom) {
+                        isInterrupted = true;
+                        writeEmptyStats(statPath, "oom");
+                    } catch (Exception exception) {
+                        isInterrupted = true;
+                        if (exception.getMessage().contains("has run into a timeout")) {
+                            writeEmptyStats(statPath, "timeout");
+                        } else {
+                            throw exception;
                         }
                     }
+
+                    MonitoringUtil.printMonitoringInformation(repo.getFederationContext());
+                } finally {
+                    repo.shutDown();
                 }
-            } catch (OutOfMemoryError oom) {
-                isInterrupted = true;
-                writeEmptyStats(statPath, "oom");
-            } catch (Exception exception) {
-                isInterrupted = true;
-                if (exception.getMessage().contains("has run into a timeout")) {
-                    writeEmptyStats(statPath, "timeout");
-                } else {
-                    throw exception;
+
+                endTime = System.currentTimeMillis();
+
+                long durationTime = endTime - startTime;
+                int nbAskQueries = CONTAINER.getAskCount();
+                long sourceSelectionTime = CONTAINER.getSourceSelectionTime();
+                long planningTime = CONTAINER.getPlanningTime();
+
+                if (!statPath.equals("/dev/null") && !isInterrupted) {
+                    File statFile = new File(statPath+".r"+(i-6));
+                    if (statFile.getParentFile() != null) {
+                        statFile.getParentFile().mkdirs();
+                    }
+                    statFile.createNewFile();
+
+                    CSVWriter statWriter = new CSVWriter(
+                            new FileWriter(statFile), ',',
+                            CSVWriter.NO_QUOTE_CHARACTER,
+                            CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                            CSVWriter.DEFAULT_LINE_END);
+
+                    Pattern pattern = Pattern
+                            .compile(".*/(\\w+)/(q\\w+)/instance_(\\d+)/batch_(\\d+)/attempt_(\\d+)/stats.csv");
+                    Matcher basicInfos = pattern.matcher(statPath);
+                    basicInfos.find();
+                    String engine = basicInfos.group(1);
+                    String query = basicInfos.group(2);
+                    String instance = basicInfos.group(3);
+                    String batch = basicInfos.group(4);
+                    String attempt = basicInfos.group(5);
+
+                    String[] header = {
+                            "query", "engine", "instance", "batch", "attempt", "exec_time", "ask",
+                            "source_selection_time", "planning_time"
+                    };
+                    statWriter.writeNext(header);
+
+                    String[] content = {
+                            query, engine, instance, batch, attempt, Long.toString(durationTime),
+                            Integer.toString(nbAskQueries), Long.toString(sourceSelectionTime),
+                            Long.toString(planningTime)
+                    };
+                    statWriter.writeNext(content);
+                    statWriter.close();
                 }
             }
-
-            MonitoringUtil.printMonitoringInformation(repo.getFederationContext());
-        } finally {
-            repo.shutDown();
+        } else {
+            log.error("Please add at least one provenance file to perform FedX-RWSS");
         }
 
-        endTime = System.currentTimeMillis();
-
-        long durationTime = endTime - startTime;
-        int nbAskQueries = CONTAINER.getAskCount();
-        long sourceSelectionTime = CONTAINER.getSourceSelectionTime();
-        long planningTime = CONTAINER.getPlanningTime();
-
-        if (!statPath.equals("/dev/null") && !isInterrupted) {
-            File statFile = new File(statPath);
-            if (statFile.getParentFile() != null) {
-                statFile.getParentFile().mkdirs();
-            }
-            statFile.createNewFile();
-
-            CSVWriter statWriter = new CSVWriter(
-                    new FileWriter(statFile), ',',
-                    CSVWriter.NO_QUOTE_CHARACTER,
-                    CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-                    CSVWriter.DEFAULT_LINE_END);
-
-            Pattern pattern = Pattern
-                    .compile(".*/(\\w+)/(q\\w+)/instance_(\\d+)/batch_(\\d+)/attempt_(\\d+)/stats.csv");
-            Matcher basicInfos = pattern.matcher(statPath);
-            basicInfos.find();
-            String engine = basicInfos.group(1);
-            String query = basicInfos.group(2);
-            String instance = basicInfos.group(3);
-            String batch = basicInfos.group(4);
-            String attempt = basicInfos.group(5);
-
-            String[] header = {
-                    "query", "engine", "instance", "batch", "attempt", "exec_time", "ask",
-                    "source_selection_time", "planning_time"
-            };
-            statWriter.writeNext(header);
-
-            String[] content = {
-                    query, engine, instance, batch, attempt, Long.toString(durationTime),
-                    Integer.toString(nbAskQueries), Long.toString(sourceSelectionTime),
-                    Long.toString(planningTime)
-            };
-            statWriter.writeNext(content);
-            statWriter.close();
-        }
     }
 
     private static void writeEmptyStats(String statPath, String reason) throws IOException {
