@@ -1,7 +1,13 @@
 org/eclipse/rdf4j/federated/optimizer/SourceSelection$CheckTaskPair.class
 org/eclipse/rdf4j/federated/optimizer/SourceSelection$SourceSelectionExecutorWithLatch.class
 org/example/FedXContainer.class
-org/eclipse/rdf4j/federated/optimizer/SourceSelection$ParallelCheckTask.class
-org/apache/http/impl/execchain/MainClientExec.class
-org/example/FedX.class
+org/eclipse/rdf4j/federated/evaluation/FederationEvalStrategy$1.class
+org/eclipse/rdf4j/federated/cache/SourceSelectionMemoryCache$Entry.class
+org/eclipse/rdf4j/federated/evaluation/SparqlTripleSource.class
+org/eclipse/rdf4j/federated/cache/SourceSelectionMemoryCache.class
 org/eclipse/rdf4j/federated/optimizer/SourceSelection.class
+org/eclipse/rdf4j/federated/evaluation/SparqlTripleSource$1.class
+org/eclipse/rdf4j/federated/optimizer/SourceSelection$ParallelCheckTask.class
+org/example/FedX.class
+org/eclipse/rdf4j/federated/evaluation/FederationEvalStrategy.class
+org/eclipse/rdf4j/federated/evaluation/FederationEvalStrategy$2.class
