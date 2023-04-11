@@ -74,21 +74,26 @@ public class FedX {
         boolean isInterrupted = false;
         Logger log = LoggerFactory.getLogger(FedX.class);
         log.info("Numbers of arguments: " + args.length);
-        log.info("Numbers of arguments: " + args.length);
         // init
         String configPath = args[0];
         String queryPath = args[1];
         String outResultPath = args[2];
         String outSourceSelectionPath = args[3];
         String outQueryPlanFile = args[4];
-        String statPath = args[5];
-        Integer timeout = Integer.parseInt(args[6]);
+        //String statPath = args[5];
+        Integer timeout = Integer.parseInt(args[5]);
         String inSourceSelectionPath = "";
 
-        if (args.length == 8) {
-            inSourceSelectionPath = args[7];
+        if (args.length == 7) {
+            inSourceSelectionPath = args[6];
             parseSourceSelection(inSourceSelectionPath);
         }
+
+        String homeDir = Paths.get(outSourceSelectionPath).getParent().toString();
+		String sourceSelectionTimeFile = homeDir + "/source_selection_time.txt";
+		String planningTimeFile = homeDir + "/planning_time.txt";
+		String askFile = homeDir + "/ask.txt";
+		String execTimeFile = homeDir + "/exec_time.txt";
 
         String rawQuery = new String(Files.readAllBytes(Paths.get(queryPath)));
         log.info("Query {}", rawQuery);
@@ -137,6 +142,23 @@ public class FedX {
                 }
 
                 if (!outSourceSelectionPath.equals("/dev/null")) {
+
+                    // Write source_selection_time.txt
+                    try (BufferedWriter sourceSelectionTimeWriter = new BufferedWriter(new FileWriter(sourceSelectionTimeFile))) {
+                        sourceSelectionTimeWriter.write(String.valueOf(CONTAINER.getSourceSelectionTime()));
+                    }
+
+                    // Write query_planning_time.txt
+                    try (BufferedWriter planningTimeWriter = new BufferedWriter(new FileWriter(planningTimeFile))) {
+                        planningTimeWriter.write(String.valueOf(CONTAINER.getPlanningTime()));
+                    }
+
+                    // Write ask.txt
+                    try (BufferedWriter askWriter = new BufferedWriter(new FileWriter(askFile))) {
+                        askWriter.write(String.valueOf(CONTAINER.getAskCount()));
+                    }
+
+                    // Write source_selection.txt
                     try (BufferedWriter sourceSelectionWriter = new BufferedWriter(
                             new FileWriter(outSourceSelectionPath))) {
                         sourceSelectionWriter.write("triple,source_selection\n");
@@ -169,11 +191,11 @@ public class FedX {
                 }
             } catch (OutOfMemoryError oom) {
                 isInterrupted = true;
-                writeEmptyStats(statPath, "oom");
+                //writeEmptyStats(statPath, "oom");
             } catch (Exception exception) {
                 isInterrupted = true;
                 if (exception.getMessage().contains("has run into a timeout")) {
-                    writeEmptyStats(statPath, "timeout");
+                    //writeEmptyStats(statPath, "timeout");
                 } else {
                     throw exception;
                 }
@@ -187,46 +209,46 @@ public class FedX {
         endTime = System.currentTimeMillis();
 
         long durationTime = endTime - startTime;
-        int nbAskQueries = CONTAINER.getAskCount();
+        /*int nbAskQueries = CONTAINER.getAskCount();
         long sourceSelectionTime = CONTAINER.getSourceSelectionTime();
-        long planningTime = CONTAINER.getPlanningTime();
+        long planningTime = CONTAINER.getPlanningTime();*/
 
-        if (!statPath.equals("/dev/null") && !isInterrupted) {
-            File statFile = new File(statPath);
-            if (statFile.getParentFile() != null) {
-                statFile.getParentFile().mkdirs();
+        if (!isInterrupted) {
+ 
+            // Write ask.txt
+            try (BufferedWriter execTimeWriter = new BufferedWriter(new FileWriter(execTimeFile))) {
+                execTimeWriter.write(String.valueOf(durationTime));
             }
-            statFile.createNewFile();
 
-            CSVWriter statWriter = new CSVWriter(
-                    new FileWriter(statFile), ',',
+            /*CSVWriter statWriter = new CSVWriter(
+                    new FileWriter(execTimeFile), ',',
                     CSVWriter.NO_QUOTE_CHARACTER,
                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-                    CSVWriter.DEFAULT_LINE_END);
+                    CSVWriter.DEFAULT_LINE_END);*/
 
-            Pattern pattern = Pattern
-                    .compile(".*/(\\w+)/(q\\w+)/instance_(\\d+)/batch_(\\d+)/attempt_(\\d+)/stats.csv");
-            Matcher basicInfos = pattern.matcher(statPath);
+            //Pattern pattern = Pattern
+            //        .compile(".*/(\\w+)/(q\\w+)/instance_(\\d+)/batch_(\\d+)/attempt_(\\d+)/stats.csv");
+            /*Matcher basicInfos = pattern.matcher(statPath);
             basicInfos.find();
             String engine = basicInfos.group(1);
             String query = basicInfos.group(2);
             String instance = basicInfos.group(3);
             String batch = basicInfos.group(4);
-            String attempt = basicInfos.group(5);
+            String attempt = basicInfos.group(5);*/
 
-            String[] header = {
+            /*String[] header = {
                     "query", "engine", "instance", "batch", "attempt", "exec_time", "ask",
                     "source_selection_time", "planning_time"
             };
-            statWriter.writeNext(header);
+            statWriter.writeNext(header);*/
 
-            String[] content = {
+            /*String[] content = {
                     query, engine, instance, batch, attempt, Long.toString(durationTime),
                     Integer.toString(nbAskQueries), Long.toString(sourceSelectionTime),
                     Long.toString(planningTime)
             };
             statWriter.writeNext(content);
-            statWriter.close();
+            statWriter.close();*/
         }
     }
 
