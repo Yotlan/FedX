@@ -83,9 +83,10 @@ public class FedX {
         //String statPath = args[5];
         Integer timeout = Integer.parseInt(args[5]);
         String inSourceSelectionPath = "";
+        String noExec = args[6];
 
-        if (args.length == 7) {
-            inSourceSelectionPath = args[6];
+        if (args.length == 8) {
+            inSourceSelectionPath = args[7];
             parseSourceSelection(inSourceSelectionPath);
         }
 
@@ -181,11 +182,13 @@ public class FedX {
                     // The execution of hasNext() yield null exception error
                     // What is actually null ? Candidates from debugger: conn (unprobable)
 
-                    while (res.hasNext()) {
-                        BindingSet b = res.next();
-
-                        if (!outResultPath.equals("/dev/null")) {
-                            queryResultWriter.write(b.toString() + "\n");
+                    if(Boolean.valueOf(noExec)){
+                        while (res.hasNext()) {
+                            BindingSet b = res.next();
+    
+                            if (!outResultPath.equals("/dev/null")) {
+                                queryResultWriter.write(b.toString() + "\n");
+                            }
                         }
                     }
                 }
