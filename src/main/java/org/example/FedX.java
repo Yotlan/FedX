@@ -182,7 +182,7 @@ public class FedX {
                     // The execution of hasNext() yield null exception error
                     // What is actually null ? Candidates from debugger: conn (unprobable)
 
-                    if(Boolean.valueOf(noExec)){
+                    if(!Boolean.valueOf(noExec)){
                         while (res.hasNext()) {
                             BindingSet b = res.next();
     
