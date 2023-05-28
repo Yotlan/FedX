@@ -190,68 +190,20 @@ public class FedX {
                                 queryResultWriter.write(b.toString() + "\n");
                             }
                         }
+
+                        endTime = System.currentTimeMillis();
+                        long durationTime = endTime - startTime;
+
+                        // Write ask.txt
+                        try (BufferedWriter execTimeWriter = new BufferedWriter(new FileWriter(execTimeFile))) {
+                            execTimeWriter.write(String.valueOf(durationTime));
+                        }
                     }
                 }
-            } catch (OutOfMemoryError oom) {
-                isInterrupted = true;
-                //writeEmptyStats(statPath, "oom");
-            } catch (Exception exception) {
-                isInterrupted = true;
-                if (exception.getMessage().contains("has run into a timeout")) {
-                    //writeEmptyStats(statPath, "timeout");
-                } else {
-                    throw exception;
-                }
-            }
-
+            } 
             MonitoringUtil.printMonitoringInformation(repo.getFederationContext());
         } finally {
             repo.shutDown();
-        }
-
-        endTime = System.currentTimeMillis();
-
-        long durationTime = endTime - startTime;
-        /*int nbAskQueries = CONTAINER.getAskCount();
-        long sourceSelectionTime = CONTAINER.getSourceSelectionTime();
-        long planningTime = CONTAINER.getPlanningTime();*/
-
-        if (!isInterrupted) {
- 
-            // Write ask.txt
-            try (BufferedWriter execTimeWriter = new BufferedWriter(new FileWriter(execTimeFile))) {
-                execTimeWriter.write(String.valueOf(durationTime));
-            }
-
-            /*CSVWriter statWriter = new CSVWriter(
-                    new FileWriter(execTimeFile), ',',
-                    CSVWriter.NO_QUOTE_CHARACTER,
-                    CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-                    CSVWriter.DEFAULT_LINE_END);*/
-
-            //Pattern pattern = Pattern
-            //        .compile(".*/(\\w+)/(q\\w+)/instance_(\\d+)/batch_(\\d+)/attempt_(\\d+)/stats.csv");
-            /*Matcher basicInfos = pattern.matcher(statPath);
-            basicInfos.find();
-            String engine = basicInfos.group(1);
-            String query = basicInfos.group(2);
-            String instance = basicInfos.group(3);
-            String batch = basicInfos.group(4);
-            String attempt = basicInfos.group(5);*/
-
-            /*String[] header = {
-                    "query", "engine", "instance", "batch", "attempt", "exec_time", "ask",
-                    "source_selection_time", "planning_time"
-            };
-            statWriter.writeNext(header);*/
-
-            /*String[] content = {
-                    query, engine, instance, batch, attempt, Long.toString(durationTime),
-                    Integer.toString(nbAskQueries), Long.toString(sourceSelectionTime),
-                    Long.toString(planningTime)
-            };
-            statWriter.writeNext(content);
-            statWriter.close();*/
         }
     }
 
